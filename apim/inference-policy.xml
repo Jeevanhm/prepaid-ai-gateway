@@ -1,0 +1,128 @@
+<policies>
+  <!-- AI inference API policy (PoC, function-key variant). Needs named values tenant-id, billing-base-url,
+       billing-func-key (Secret) and the billing-logger Event Hubs logger. -->
+  <inbound>
+    <base />
+    <!-- 1. Authenticate the caller with Entra ID -->
+    <validate-azure-ad-token tenant-id="{{tenant-id}}" output-token-variable-name="jwt">
+      <audiences>
+        <audience>https://cognitiveservices.azure.com</audience>
+      </audiences>
+    </validate-azure-ad-token>
+    <set-variable name="clientId" value="@{
+      var jwt = (Jwt)context.Variables["jwt"];
+      return jwt.Claims.GetValueOrDefault("appid", jwt.Claims.GetValueOrDefault("azp", ""));
+    }" />
+
+    <!-- 2. Resolve account, backend and balance (cached 30 s) -->
+    <cache-lookup-value key="@("acct-" + (string)context.Variables["clientId"])" variable-name="acct" />
+    <choose>
+      <when condition="@(!context.Variables.ContainsKey("acct"))">
+        <send-request mode="new" response-variable-name="acctResp" timeout="5" ignore-error="false">
+          <set-url>@("{{billing-base-url}}/api/accounts/by-client/" + (string)context.Variables["clientId"])</set-url>
+          <set-method>GET</set-method>
+          <set-header name="x-functions-key" exists-action="override">
+            <value>{{billing-func-key}}</value>
+          </set-header>
+        </send-request>
+        <choose>
+          <when condition="@(((IResponse)context.Variables["acctResp"]).StatusCode == 404)">
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":{"code":"NotOnboarded","message":"This application is not registered with the AI gateway. Contact the AI platform team."}}</set-body>
+            </return-response>
+          </when>
+          <when condition="@(((IResponse)context.Variables["acctResp"]).StatusCode != 200)">
+            <return-response>
+              <set-status code="503" reason="Service Unavailable" />
+              <set-header name="Retry-After" exists-action="override"><value>5</value></set-header>
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":{"code":"BillingUnavailable","message":"The balance check failed. Retry in a few seconds."}}</set-body>
+            </return-response>
+          </when>
+        </choose>
+        <set-variable name="acct" value="@(((IResponse)context.Variables["acctResp"]).Body.As<string>())" />
+        <cache-store-value key="@("acct-" + (string)context.Variables["clientId"])" value="@((string)context.Variables["acct"])" duration="30" />
+      </when>
+    </choose>
+    <set-variable name="accountId" value="@((string)JObject.Parse((string)context.Variables["acct"])["accountId"])" />
+    <set-variable name="backendId" value="@((string)JObject.Parse((string)context.Variables["acct"])["backendId"])" />
+    <set-variable name="balance" value="@((long)JObject.Parse((string)context.Variables["acct"])["balanceMicroUsd"])" />
+
+    <!-- 3. Stop when the prepaid balance is used up -->
+    <choose>
+      <when condition="@((long)context.Variables["balance"] <= 0)">
+        <return-response>
+          <set-status code="402" reason="Payment Required" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":{"code":"PrepaidBalanceExhausted","message":"Your team's prepaid AI balance is used up. Ask your admin to top up."}}</set-body>
+        </return-response>
+      </when>
+    </choose>
+
+    <!-- 4. Throughput cap per account, and token metrics -->
+    <llm-token-limit counter-key="@((string)context.Variables["accountId"])"
+                     tokens-per-minute="200000"
+                     estimate-prompt-tokens="false"
+                     tokens-consumed-variable-name="tokensConsumed"
+                     remaining-tokens-header-name="x-ratelimit-remaining-tokens" />
+    <llm-emit-token-metric namespace="ai-gateway">
+      <dimension name="Account" value="@((string)context.Variables["accountId"])" />
+      <dimension name="Client ID" value="@((string)context.Variables["clientId"])" />
+      <dimension name="API ID" />
+    </llm-emit-token-metric>
+
+    <!-- 5. Route to the team's Foundry resource as the gateway identity -->
+    <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+  </inbound>
+
+  <backend>
+    <base />
+  </backend>
+
+  <outbound>
+    <base />
+    <!-- 6. Usage event for billing (async, the client does not wait) -->
+    <choose>
+      <when condition="@(context.Response.StatusCode == 200 && !context.Response.Headers.GetValueOrDefault("Content-Type", "").Contains("text/event-stream"))">
+        <log-to-eventhub logger-id="billing-logger">@{
+          var body = context.Response.Body.As<JObject>(preserveContent: true);
+          var usage = body["usage"];
+          return new JObject(
+            new JProperty("chargeId", context.RequestId.ToString()),
+            new JProperty("accountId", (string)context.Variables["accountId"]),
+            new JProperty("clientId", (string)context.Variables["clientId"]),
+            new JProperty("model", (string)body["model"]),
+            new JProperty("promptTokens", usage?["prompt_tokens"]?.Value<int>() ?? 0),
+            new JProperty("cachedTokens", usage?["prompt_tokens_details"]?["cached_tokens"]?.Value<int>() ?? 0),
+            new JProperty("completionTokens", usage?["completion_tokens"]?.Value<int>() ?? 0),
+            new JProperty("estimated", false),
+            new JProperty("ts", DateTime.UtcNow.ToString("o"))
+          ).ToString();
+        }</log-to-eventhub>
+      </when>
+      <when condition="@(context.Response.StatusCode == 200)">
+        <!-- streamed: total tokens only, charged at the output rate and trued up nightly -->
+        <log-to-eventhub logger-id="billing-logger">@{
+          return new JObject(
+            new JProperty("chargeId", context.RequestId.ToString()),
+            new JProperty("accountId", (string)context.Variables["accountId"]),
+            new JProperty("clientId", (string)context.Variables["clientId"]),
+            new JProperty("model", context.Request.MatchedParameters.GetValueOrDefault("deployment-id", "unknown")),
+            new JProperty("promptTokens", 0),
+            new JProperty("cachedTokens", 0),
+            new JProperty("completionTokens", context.Variables.GetValueOrDefault<int>("tokensConsumed", 0)),
+            new JProperty("estimated", true),
+            new JProperty("ts", DateTime.UtcNow.ToString("o"))
+          ).ToString();
+        }</log-to-eventhub>
+      </when>
+    </choose>
+  </outbound>
+
+  <on-error>
+    <base />
+  </on-error>
+</policies>

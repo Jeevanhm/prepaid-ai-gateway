@@ -1,0 +1,1052 @@
+<title>Prepaid AI Gateway</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: technical design doc — sticky contents rail on wide screens, single reading column, wide blocks scroll in place */
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --ink:#16181D; --muted:#596070; --line:#D8DCE4;
+  --accent:#1E4FD6; --accent-soft:#E7EDFD; --money:#8F5600; --money-soft:#FBF0DC;
+  --code-bg:#EEF1F6; --code-ink:#1D2330;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1115; --surface:#171A21; --ink:#E6E8ED; --muted:#9BA2B1; --line:#2B303B;
+  --accent:#8FA9FF; --accent-soft:#1B2445; --money:#EDB65C; --money-soft:#2D2415;
+  --code-bg:#12151B; --code-ink:#D9DDE6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1115; --surface:#171A21; --ink:#E6E8ED; --muted:#9BA2B1; --line:#2B303B;
+  --accent:#8FA9FF; --accent-soft:#1B2445; --money:#EDB65C; --money-soft:#2D2415;
+  --code-bg:#12151B; --code-ink:#D9DDE6; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:1140px;margin:0 auto;display:grid;grid-template-columns:210px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}.toc{display:none}}
+header.top{max-width:1140px;margin:0 auto 32px;padding-block:48px 28px;border-bottom:1px solid var(--line)}
+.eyebrow{font:500 12px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 clamp(30px,4.4vw,46px)/1.1 var(--f-display);margin:12px 0;text-wrap:balance;letter-spacing:-.01em}
+.lede{max-width:68ch;color:var(--muted);font-size:18px;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:20px;font:400 13px/1.4 var(--f-mono);color:var(--muted)}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:14px}
+.toc p{font:500 12px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.toc ol{list-style:none;padding:0;margin:0;display:grid;gap:6px;counter-reset:t}
+.toc a{color:var(--ink);text-decoration:none;display:flex;gap:10px}
+.toc a::before{counter-increment:t;content:counter(t,decimal-leading-zero);font:400 12px/1.9 var(--f-mono);color:var(--muted)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent)}
+main{min-width:0}
+section{padding-block:8px 36px}
+h2{font:600 26px/1.2 var(--f-display);margin:0 0 14px;text-wrap:balance;scroll-margin-top:24px}
+h3{font:600 18px/1.3 var(--f-display);margin:28px 0 8px;text-wrap:balance}
+p,li{max-width:72ch}
+a{color:var(--accent)}
+code{font:400 .88em var(--f-mono);background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:560px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px/1.3 var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.total td{font-weight:600;border-top:2px solid var(--ink);border-bottom:none}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.figure svg{display:block;min-width:820px;width:100%;height:auto}
+.caption{font-size:13px;color:var(--muted);margin:10px 0 0}
+.flow{counter-reset:f;list-style:none;padding:0;display:grid;gap:10px;margin:16px 0}
+.flow li{counter-increment:f;display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;max-width:none}
+.flow li::before{content:counter(f);font:600 14px/30px var(--f-display);width:30px;height:30px;text-align:center;border-radius:50%;background:var(--accent-soft);color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{font:600 15px/1.3 var(--f-display);margin:0 0 6px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.price{font:600 22px/1.2 var(--f-display);font-variant-numeric:tabular-nums;margin:6px 0 4px;color:var(--ink)}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.05em;text-transform:uppercase;padding:4px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px}
+.tag.money{background:var(--money-soft);color:var(--money)}
+.note{border-left:3px solid var(--money);background:var(--money-soft);padding:12px 16px;margin:16px 0;font-size:14.5px;border-radius:0}
+.note p{margin:0}
+.step{border-top:1px solid var(--line);margin-top:28px}
+.step h3{margin-top:16px;display:flex;gap:12px;align-items:baseline}
+.step h3 span{font:500 13px/1 var(--f-mono);color:var(--accent);white-space:nowrap}
+.code{position:relative;margin:12px 0}
+.code pre{margin:0;background:var(--code-bg);color:var(--code-ink);border:1px solid var(--line);border-radius:8px;padding:38px 16px 14px;overflow-x:auto;font:400 13px/1.55 var(--f-mono);tab-size:2}
+.code .lang{position:absolute;top:12px;left:16px;font:500 11px/1 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.code button{position:absolute;top:6px;right:6px;font:500 12px/1 var(--f-body);padding:6px 9px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.code button:focus-visible,.toc a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.phase{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+.phase div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.phase b{font:600 13px/1 var(--f-mono);color:var(--accent);display:block;margin-bottom:6px}
+.phase span{font-size:14px;color:var(--muted)}
+.sources{font-size:13.5px;color:var(--muted)}
+.sources li{margin-bottom:4px}
+.d-node{fill:var(--surface);stroke:var(--line);stroke-width:1}
+.d-acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1}
+.d-money{fill:var(--money-soft);stroke:var(--money);stroke-width:1}
+.d-zone{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4}
+.d-t{fill:var(--ink);font:600 14px var(--f-body)}
+.d-s{fill:var(--muted);font:400 12px var(--f-body)}
+.d-step{fill:var(--accent);font:500 12px var(--f-mono)}
+.d-arr{stroke:var(--muted);stroke-width:1.4;fill:none}
+.d-arr-acc{stroke:var(--accent);stroke-width:1.6;fill:none}
+.d-lbl{fill:var(--muted);font:400 11.5px var(--f-mono)}
+</style>
+
+<header class="top">
+  <div class="eyebrow">Design · AI platform</div>
+  <h1>Prepaid AI Gateway on Azure API Management</h1>
+  <p class="lede">One Azure API Management gateway in front of every team's Azure AI Foundry resource. Teams keep signing in with Entra ID, the platform team gets central monitoring, and each team's spend stops when its prepaid dollar balance runs out.</p>
+  <div class="meta"><span>Status: PoC verified in sandbox, Oct 29 2026</span><span>Deployment: Azure portal</span><span>Region baseline: East US</span><span>Prices: list, Oct 2026</span></div>
+</header>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <p>Contents</p>
+  <ol>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#poc">PoC status</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#components">Components and tiers</a></li>
+    <li><a href="#ledger">Ledger data model</a></li>
+    <li><a href="#cost">Monthly cost</a></li>
+    <li><a href="#build">Build steps</a></li>
+    <li><a href="#policy">Gateway policy</a></li>
+    <li><a href="#service">Billing service code</a></li>
+    <li><a href="#reporting">Reporting</a></li>
+    <li><a href="#risks">Risks and open items</a></li>
+    <li><a href="#plan">Delivery plan</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="summary">
+  <h2>Summary</h2>
+  <p>Today every team calls its own Foundry resource directly. This design puts a single APIM instance between the teams and their models, and adds a small billing service that keeps a prepaid balance per team in a ledger.</p>
+  <div class="grid2">
+    <div class="card"><span class="tag">For teams</span><h4>Only the endpoint changes</h4><p>Teams keep their Entra ID token for <code>https://cognitiveservices.azure.com</code> and their SDK. They swap the Foundry URL for the gateway URL.</p></div>
+    <div class="card"><span class="tag">For the platform team</span><h4>One place to watch and control</h4><p>Token metrics, logs and throughput limits for every team in one APIM instance and one Log Analytics workspace.</p></div>
+    <div class="card"><span class="tag money">For finance</span><h4>Prepaid dollars, enforced</h4><p>Each request is priced from its token usage and deducted from the team's balance. At zero, the gateway returns <code>402</code> until the team tops up.</p></div>
+  </div>
+  <p>The model calls stay in each team's Foundry resource and subscription, so the Azure invoice is unchanged. The ledger is an internal chargeback and control layer on top.</p>
+</section>
+
+<section id="poc">
+  <h2>PoC status</h2>
+  <p>The design was built in the <code>SUB-MSHS-SANDBOX</code> subscription and tested end to end. A gpt-4o call through the gateway was priced and deducted from a prepaid balance, and a call with a zero balance was refused with <code>402</code> before reaching the model.</p>
+
+  <h3>How the PoC differs from the production design</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Area</th><th>Production design</th><th>PoC</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>APIM → billing service auth</td><td>Entra app registration with <code>Billing.Gateway</code> / <code>Billing.Admin</code> app roles</td><td>A separate function key per endpoint; APIM holds its key as a Secret named value</td><td>No permission to create app registrations</td></tr>
+      <tr><td>Top-up audit</td><td>Admin taken from the signed-in user</td><td><code>by</code> field in the request body</td><td>Follows from function keys</td></tr>
+      <tr><td>Event Hubs</td><td>Standard, up to 7-day retention</td><td>Basic, 1-day retention</td><td>Cost; acceptable for a PoC</td></tr>
+      <tr><td>Networking</td><td>Private endpoints, VNet integration</td><td>Public endpoints secured by Entra ID and managed identity</td><td>PoC scope</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Deployed resources</h3>
+  <p>Resource group <code>rg-meter-sandbox-eus-01</code>, East US.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Resource</th><th>Name</th><th>Configuration</th></tr></thead>
+    <tbody>
+      <tr><td>API Management</td><td><code>apim-meter-sandbox-eus-01</code></td><td>API <code>AI Inference</code>, base path <code>ai</code>; backend <code>foundry-meter</code>; named values <code>tenant-id</code>, <code>billing-base-url</code>, <code>billing-func-key</code> (Secret); logger <code>billing-logger</code></td></tr>
+      <tr><td>Function app</td><td><code>fnc-meter-sandbox-eus-01</code></td><td>Flex Consumption, Python 3.11, 2048 MB; functions <code>account_for_client</code>, <code>charge_usage</code>, <code>top_up</code></td></tr>
+      <tr><td>Cosmos DB</td><td><code>cdb-meter-sandbox-eus-01</code></td><td>Serverless; database <code>billing</code> with <code>ledger</code>, <code>clients</code>, <code>prices</code>; key auth off</td></tr>
+      <tr><td>Event Hubs</td><td><code>ehub-meter-sandbox-eus-01</code></td><td>Basic; hub <code>usage-events</code>, 4 partitions, 1 day; local auth off</td></tr>
+      <tr><td>AI Foundry</td><td><code>aif-meter-sandbox-eus-01</code></td><td>Deployment <code>gpt-4o</code> (model <code>gpt-4o-2024-11-20</code>)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Tests passed</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Test</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Billing service directly: lookup, top-up, lookup</td><td>Balance $0 → $10</td></tr>
+      <tr><td>Unknown caller through the gateway</td><td><code>403 NotOnboarded</code></td></tr>
+      <tr><td>gpt-4o call through the gateway</td><td>HTTP 200, routed with the APIM managed identity</td></tr>
+      <tr><td>Charging, 6 calls</td><td>1,580 µ$ total; every charge matched tokens × price, rounded up per call</td></tr>
+      <tr><td>Duplicate protection</td><td>One charge per APIM request ID; one top-up per reference</td></tr>
+      <tr><td>Balance at zero</td><td><code>402 PrepaidBalanceExhausted</code>, no model call, no charge</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>What we learned while deploying</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Deployment succeeded but no functions listed</td><td>App settings <code>EventHub__fullyQualifiedNamespace</code> and <code>COSMOS_ENDPOINT</code> missing</td><td>Add both before deploying. The code now connects to Cosmos DB on first use, so a Cosmos DB problem no longer hides the functions.</td></tr>
+      <tr><td>Event hub creation failed on Basic</td><td>CLI default retention is 7 days; Basic allows 1</td><td>Create with 1-day retention</td></tr>
+      <tr><td>Logger creation failed</td><td>Event hub <code>usage-events</code> didn't exist yet</td><td>Create the hub before the logger</td></tr>
+      <tr><td><code>403 NotOnboarded</code> from Cloud Shell</td><td>Cloud Shell tokens carry <code>appid</code> <code>b677c290-cf4b-4a8e-a60e-91ba650a4abe</code>, not the Azure CLI ID</td><td>Map the ID the token actually carries (decode it to check)</td></tr>
+      <tr><td><code>404</code> from Foundry</td><td>Backend URL ended in <code>/openai</code>, and the imported operations already start with <code>/openai</code></td><td>Backend URL is the Foundry host only, for example <code>https://aif-meter-sandbox-eus-01.openai.azure.com</code></td></tr>
+      <tr><td>Empty host name in scripts</td><td><code>az functionapp show --query defaultHostName</code> is empty on Flex Consumption</td><td>Use <code>az resource show … --query properties.defaultHostName</code></td></tr>
+      <tr><td>Data Explorer empty or forbidden</td><td>Key auth off; your user needs a Cosmos DB data role</td><td>Assign Data Contributor to your user and set <b>Enable Entra ID RBAC</b> in Data Explorer settings</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Next steps</h3>
+  <div class="grid2">
+    <div class="card"><span class="tag">Before real teams</span><h4>Clean up test data</h4><p>Delete the test <code>clients</code> mappings for Cloud Shell and Azure CLI, and restore or remove the <code>meter-poc</code> account.</p></div>
+    <div class="card"><span class="tag">Per team</span><h4>Onboard</h4><p>Backend with no <code>/openai</code>, APIM role on the team's Foundry resource, account and <code>clients</code> documents, prices, a top-up, then the team switches its endpoint to <code>https://apim-meter-sandbox-eus-01.azure-api.net/ai</code>.</p></div>
+    <div class="card"><span class="tag money">For production</span><h4>Harden</h4><p>Entra app roles instead of function keys, APIM Standard v2 and Event Hubs Standard, private endpoints, an adjustment endpoint for debits, a streaming true-up, and removing teams' direct Foundry access.</p></div>
+  </div>
+</section>
+
+<section id="architecture">
+  <h2>Architecture</h2>
+  <div class="figure">
+    <div class="scroll">
+    <svg viewBox="0 0 900 540" role="img" aria-labelledby="dg-t dg-d">
+      <title id="dg-t">Prepaid AI gateway architecture</title>
+      <desc id="dg-d">Teams call Azure API Management with Entra ID tokens. APIM validates the token, checks the team's balance through the billing service, enforces token limits, and routes to the team's Foundry resource with its managed identity. After the response, APIM sends a usage event to Event Hubs. The billing service prices the event and deducts it in the Cosmos DB ledger. Admins top up balances. Metrics go to Application Insights and reporting reads the ledger.</desc>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1.5 1L8.5 5L1.5 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+      <text class="d-s" x="26" y="36">Teams · Entra ID token</text>
+      <rect class="d-zone" x="14" y="44" width="152" height="186" rx="10"/>
+      <rect class="d-node" x="28" y="60" width="124" height="44" rx="7"/><text class="d-t" x="90" y="87" text-anchor="middle">Team A app</text>
+      <rect class="d-node" x="28" y="116" width="124" height="44" rx="7"/><text class="d-t" x="90" y="143" text-anchor="middle">Team B app</text>
+      <rect class="d-node" x="28" y="172" width="124" height="44" rx="7"/><text class="d-t" x="90" y="199" text-anchor="middle">Team C app</text>
+
+      <line class="d-arr-acc" x1="168" y1="138" x2="216" y2="138" marker-end="url(#ah)"/>
+
+      <rect class="d-acc" x="220" y="44" width="270" height="206" rx="10"/>
+      <text class="d-t" x="236" y="70">Azure API Management</text>
+      <text class="d-s" x="236" y="88">Standard v2 · AI gateway policies</text>
+      <text class="d-step" x="236" y="116">1</text><text class="d-s" x="254" y="116">Validate Entra token, read appid</text>
+      <text class="d-step" x="236" y="140">2</text><text class="d-s" x="254" y="140">Account + balance (cached 30 s)</text>
+      <text class="d-step" x="236" y="164">3</text><text class="d-s" x="254" y="164">Balance ≤ 0 → 402</text>
+      <text class="d-step" x="236" y="188">4</text><text class="d-s" x="254" y="188">Token limit + token metrics</text>
+      <text class="d-step" x="236" y="212">5</text><text class="d-s" x="254" y="212">Route to team backend (MI)</text>
+      <text class="d-step" x="236" y="236">6</text><text class="d-s" x="254" y="236">Emit usage event</text>
+
+      <text class="d-lbl" x="580" y="40">managed identity</text>
+      <rect class="d-node" x="580" y="56" width="160" height="44" rx="7"/><text class="d-t" x="660" y="83" text-anchor="middle">Foundry · Team A</text>
+      <rect class="d-node" x="580" y="116" width="160" height="44" rx="7"/><text class="d-t" x="660" y="143" text-anchor="middle">Foundry · Team B</text>
+      <rect class="d-node" x="580" y="176" width="160" height="44" rx="7"/><text class="d-t" x="660" y="203" text-anchor="middle">Foundry · Team C</text>
+      <path class="d-arr-acc" d="M492 130 L536 130 L536 78 L576 78" marker-end="url(#ah)"/>
+      <line class="d-arr-acc" x1="492" y1="138" x2="576" y2="138" marker-end="url(#ah)"/>
+      <path class="d-arr-acc" d="M492 146 L536 146 L536 198 L576 198" marker-end="url(#ah)"/>
+
+      <path class="d-arr" d="M490 236 L823 236 L823 326" marker-end="url(#ah)"/>
+      <text class="d-lbl" x="640" y="256">token metrics, LLM logs</text>
+      <rect class="d-node" x="760" y="330" width="126" height="64" rx="7"/>
+      <text class="d-t" x="823" y="356" text-anchor="middle">App Insights</text>
+      <text class="d-s" x="823" y="376" text-anchor="middle">+ Log Analytics</text>
+
+      <path class="d-arr" d="M300 252 L300 326" marker-end="url(#ah)"/>
+      <text class="d-lbl" x="310" y="296">lookup on cache miss</text>
+      <path class="d-arr" d="M440 252 L440 304 L585 304 L585 326" marker-end="url(#ah)"/>
+      <text class="d-lbl" x="474" y="296">usage event</text>
+
+      <rect class="d-money" x="220" y="330" width="210" height="64" rx="7"/>
+      <text class="d-t" x="325" y="356" text-anchor="middle">Billing service</text>
+      <text class="d-s" x="325" y="376" text-anchor="middle">Functions · Flex Consumption</text>
+
+      <rect class="d-node" x="500" y="330" width="170" height="64" rx="7"/>
+      <text class="d-t" x="585" y="356" text-anchor="middle">Event Hubs</text>
+      <text class="d-s" x="585" y="376" text-anchor="middle">usage-events</text>
+      <line class="d-arr" x1="498" y1="362" x2="434" y2="362" marker-end="url(#ah)"/>
+
+      <rect class="d-node" x="14" y="330" width="152" height="64" rx="7"/>
+      <text class="d-t" x="90" y="356" text-anchor="middle">Admin top-up</text>
+      <text class="d-s" x="90" y="376" text-anchor="middle">Billing.Admin role</text>
+      <line class="d-arr" x1="168" y1="362" x2="216" y2="362" marker-end="url(#ah)"/>
+
+      <rect class="d-money" x="220" y="450" width="210" height="64" rx="7"/>
+      <text class="d-t" x="325" y="476" text-anchor="middle">Cosmos DB ledger</text>
+      <text class="d-s" x="325" y="496" text-anchor="middle">Serverless · accounts, charges</text>
+      <line class="d-arr" x1="325" y1="396" x2="325" y2="446" marker-end="url(#ah)"/>
+
+      <rect class="d-node" x="500" y="450" width="170" height="64" rx="7"/>
+      <text class="d-t" x="585" y="476" text-anchor="middle">Reporting</text>
+      <text class="d-s" x="585" y="496" text-anchor="middle">Power BI · Workbooks</text>
+      <line class="d-arr" x1="432" y1="482" x2="496" y2="482" marker-end="url(#ah)"/>
+    </svg>
+    </div>
+    <p class="caption">Blue boxes and arrows are the request path. Amber boxes are the billing layer you build. Gray arrows run outside the request or after the response is sent.</p>
+  </div>
+
+  <h3>What happens on one request</h3>
+  <ol class="flow">
+    <li><div>The team's app gets an Entra token for <code>https://cognitiveservices.azure.com</code> exactly as it does today, and calls the gateway URL.</div></li>
+    <li><div>APIM validates the token and reads the calling application's ID (<code>appid</code> or <code>azp</code> claim).</div></li>
+    <li><div>APIM looks up the account in its cache. On a miss it calls the billing service, which returns the account, the team's backend and the current balance. Unknown apps get <code>403</code>.</div></li>
+    <li><div>If the balance is zero or below, APIM returns <code>402 Payment Required</code> without calling the model.</div></li>
+    <li><div>APIM applies a tokens-per-minute cap per account, emits token metrics, swaps the caller's token for its own managed identity token and forwards to the team's Foundry resource.</div></li>
+    <li><div>After the response, APIM writes a usage event (request ID, account, model, token counts) to Event Hubs. The client does not wait for this.</div></li>
+    <li><div>The billing service reads the event, prices it from the price table and, in one Cosmos transaction, records the charge and deducts the balance. A repeated event with the same request ID is ignored.</div></li>
+  </ol>
+  <p>Added latency is about 1–2 ms on a cache hit and 15–40 ms on a cache miss, against model calls that take 0.5–30 s.</p>
+</section>
+
+<section id="components">
+  <h2>Components and tiers</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Component</th><th>Service and tier</th><th>Why this tier</th></tr></thead>
+    <tbody>
+      <tr><td>Gateway</td><td>API Management <b>Standard v2</b>, 1 unit</td><td>SLA, 50M calls a month included, outbound VNet integration, built-in AI gateway policies. Use Basic v2 for dev/test. Move to Premium v2 for VNet injection, availability zones, multi-region or a workspace per team.</td></tr>
+      <tr><td>Billing service</td><td>Azure Functions <b>Flex Consumption</b>, Python 3.11, 1 always-ready instance (2 GB)</td><td>Scales with traffic, supports VNet, and the always-ready instance keeps cold starts off the balance lookup path.</td></tr>
+      <tr><td>Ledger</td><td>Cosmos DB for NoSQL, <b>serverless</b></td><td>Pay per request, single-digit-ms point reads, and transactional batches within one partition, so the charge record and the balance update commit together.</td></tr>
+      <tr><td>Usage queue</td><td>Event Hubs <b>Standard</b>, 1 throughput unit</td><td>APIM's <code>log-to-eventhub</code> is asynchronous and durable. If the billing service is down, events wait in the hub and are charged when it recovers.</td></tr>
+      <tr><td>Monitoring</td><td>Application Insights + Log Analytics</td><td>Receives <code>llm-emit-token-metric</code> output and the APIM gateway and LLM logs.</td></tr>
+      <tr><td>Secrets</td><td>Key Vault, standard</td><td>Mostly unused because every hop uses managed identity; kept for any third-party secrets.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note"><p>Every hop authenticates with managed identity: APIM to Foundry, APIM to Event Hubs, APIM to the billing service, and the billing service to Cosmos DB and Event Hubs. The design stores no keys.</p></div>
+</section>
+
+<section id="ledger">
+  <h2>Ledger data model</h2>
+  <p>Money is stored as integer micro-USD (1 USD = 1,000,000) so it never drifts from floating-point rounding. Database <code>billing</code> holds three containers.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Container</th><th>Partition key</th><th>Documents</th></tr></thead>
+    <tbody>
+      <tr><td><code>ledger</code></td><td><code>/accountId</code></td><td>One <code>account</code> document per team (balance, backend, status), plus every <code>charge</code> and <code>topup</code> for that team. Keeping them in one partition is what makes the atomic batch possible.</td></tr>
+      <tr><td><code>clients</code></td><td><code>/id</code></td><td>Maps an Entra application ID to an account. A team can have several apps.</td></tr>
+      <tr><td><code>prices</code></td><td><code>/id</code></td><td>Rates per model in USD per 1M tokens: input, cached input, output.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="code" data-src="src-docs" data-lang="json"></div>
+</section>
+
+<section id="cost">
+  <h2>Monthly cost</h2>
+  <p>Estimates for the gateway and billing layer only. Model token charges stay in each team's Foundry resource and are not included. Assumes about 5 million model requests a month in one region.</p>
+  <div class="grid2">
+    <div class="card"><span class="tag">Dev / test</span><div class="price">≈ $190</div><p>APIM Basic v2, Functions without an always-ready instance, small log volume. No zone redundancy.</p></div>
+    <div class="card"><span class="tag">Production (recommended)</span><div class="price">≈ $805–890</div><p>APIM Standard v2, one always-ready Functions instance, Event Hubs Standard.</p></div>
+    <div class="card"><span class="tag">Enterprise</span><div class="price">≈ $3,000+</div><p>APIM Premium v2 for VNet injection, zones, multi-region and workspaces. Each extra unit adds about $1,400.</p></div>
+  </div>
+  <h3>Production breakdown</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Service</th><th>Sizing</th><th class="num">Est. per month</th></tr></thead>
+    <tbody>
+      <tr><td>API Management Standard v2</td><td>1 unit, 50M calls included, then $2.50 per 1M</td><td class="num">$700</td></tr>
+      <tr><td>Functions Flex Consumption</td><td>1 always-ready instance at 2 GB (≈ $21) + executions</td><td class="num">$25–40</td></tr>
+      <tr><td>Cosmos DB serverless</td><td>≈ 75M RU at $0.25 per 1M + ≈ 10 GB storage at $0.25/GB</td><td class="num">$20–30</td></tr>
+      <tr><td>Event Hubs Standard</td><td>1 throughput unit + ingress</td><td class="num">$22–25</td></tr>
+      <tr><td>Log Analytics + App Insights</td><td>20–40 GB a month, first 5 GB free</td><td class="num">$35–90</td></tr>
+      <tr><td>Key Vault + Functions storage account</td><td>Low volume</td><td class="num">$3–5</td></tr>
+      <tr class="total"><td>Total</td><td></td><td class="num">≈ $805–890</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>Gateway tier reference</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>APIM tier</th><th class="num">Base per month</th><th class="num">Extra unit</th><th>Included calls</th><th>Fit</th></tr></thead>
+    <tbody>
+      <tr><td>Basic v2</td><td class="num">≈ $150</td><td class="num">—</td><td>10M, then $3 per 1M</td><td>Dev/test, pilots</td></tr>
+      <tr><td>Standard v2</td><td class="num">≈ $700</td><td class="num">≈ $500</td><td>50M, then $2.50 per 1M</td><td>Production, single region</td></tr>
+      <tr><td>Premium v2</td><td class="num">≈ $2,800</td><td class="num">≈ $1,400</td><td>Unlimited</td><td>VNet injection, zones, multi-region, workspaces</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note"><p>These are East US list prices from third-party aggregators dated September–October 2026; Microsoft's own pricing pages did not show figures when checked. The Log Analytics per-GB rate is unverified. Confirm every line in the Azure pricing calculator for your region and agreement before budgeting. Private endpoints, if you add them, cost roughly $7–8 each a month.</p></div>
+</section>
+
+<section id="build">
+  <h2>Build steps (Azure portal)</h2>
+  <p>Every resource is created by hand in the Azure portal. Sign in as someone who can create resources and assign roles in the target subscription, and who can create app registrations in Entra ID. Portal labels move around between releases, so a menu name may differ slightly from what is written here.</p>
+  <div class="note"><p>A few settings have no portal screen: the Cosmos DB data role, the APIM-to-Event Hubs logger, assigning an app role to a managed identity, and turning off key auth. For those, open <b>Cloud Shell</b> (the <code>&gt;_</code> icon in the portal's top bar, Bash mode) and paste the command shown. Nothing needs to be installed on your machine.</p></div>
+
+  <p>Use the same names throughout. These are examples; most must be globally unique, so add your own suffix.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Resource</th><th>Example name</th></tr></thead>
+    <tbody>
+      <tr><td>Resource group</td><td><code>rg-ai-gateway</code></td></tr>
+      <tr><td>Log Analytics workspace</td><td><code>log-ai-gateway</code></td></tr>
+      <tr><td>Application Insights</td><td><code>appi-ai-gateway</code></td></tr>
+      <tr><td>API Management</td><td><code>apim-ai-gw-contoso</code></td></tr>
+      <tr><td>Cosmos DB account</td><td><code>cosmos-ai-ledger-contoso</code></td></tr>
+      <tr><td>Event Hubs namespace / hub</td><td><code>evhns-ai-usage-contoso</code> / <code>usage-events</code></td></tr>
+      <tr><td>Function app</td><td><code>func-ai-billing-contoso</code></td></tr>
+      <tr><td>App registration</td><td><code>ai-billing-api</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="step"><h3><span>Step 1</span>Resource group</h3>
+  <ol>
+    <li>Search for <b>Resource groups</b> → <b>Create</b>.</li>
+    <li>Pick the subscription, name it <code>rg-ai-gateway</code>, region <b>East US</b> (or the region your Foundry resources are in).</li>
+    <li><b>Review + create</b> → <b>Create</b>.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 2</span>Log Analytics and Application Insights</h3>
+  <ol>
+    <li>Search for <b>Log Analytics workspaces</b> → <b>Create</b>. Resource group <code>rg-ai-gateway</code>, name <code>log-ai-gateway</code>, same region → <b>Review + create</b>.</li>
+    <li>Search for <b>Application Insights</b> → <b>Create</b>. Name <code>appi-ai-gateway</code>, same region, <b>Log Analytics workspace</b>: <code>log-ai-gateway</code> → <b>Review + create</b>.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 3</span>API Management</h3>
+  <ol>
+    <li>Search for <b>API Management services</b> → <b>Create</b>.</li>
+    <li><b>Basics</b>: resource group <code>rg-ai-gateway</code>, region, resource name <code>apim-ai-gw-contoso</code>, organization name, administrator email.</li>
+    <li><b>Pricing tier</b>: <b>Standard v2</b> for production (<b>Basic v2</b> for dev/test), <b>Units</b>: 1.</li>
+    <li><b>Monitor + secure</b> tab (if shown): turn on Application Insights and select <code>appi-ai-gateway</code>, and Log Analytics with <code>log-ai-gateway</code>. If the tab isn't shown, do this in item 6.</li>
+    <li><b>Review + create</b> → <b>Create</b>. v2 tiers are usually ready in a few minutes.</li>
+    <li>When it's ready, open the instance:
+      <ul>
+        <li><b>Security → Managed identities → System assigned</b>: Status <b>On</b> → <b>Save</b>. Copy the <b>Object (principal) ID</b>; later steps call it <i>APIM identity ID</i>.</li>
+        <li><b>Monitoring → Application Insights</b>: <b>Add</b> → <code>appi-ai-gateway</code> if not already connected.</li>
+        <li><b>Monitoring → Diagnostic settings</b> → <b>Add diagnostic setting</b>: tick the gateway logs and the <b>LLM</b> (generative AI gateway) logs, send to <code>log-ai-gateway</code>, <b>Resource specific</b> destination table → <b>Save</b>.</li>
+      </ul>
+    </li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 4</span>Cosmos DB ledger</h3>
+  <ol>
+    <li>Search for <b>Azure Cosmos DB</b> → <b>Create</b> → <b>Azure Cosmos DB for NoSQL</b> → <b>Create</b>.</li>
+    <li><b>Basics</b>: resource group, account name <code>cosmos-ai-ledger-contoso</code>, location, <b>Capacity mode: Serverless</b>.</li>
+    <li><b>Backup Policy</b>: <b>Continuous (7 days)</b>, so ledger mistakes can be rolled back to a point in time.</li>
+    <li><b>Review + create</b> → <b>Create</b>.</li>
+    <li>Open the account → <b>Data Explorer</b> → <b>New Container</b>:
+      <ul>
+        <li>Database id: <b>Create new</b>, <code>billing</code>. Container id <code>ledger</code>, partition key <code>/accountId</code>. Under advanced settings, set <b>Time to live: On (no default)</b> → <b>OK</b>.</li>
+        <li><b>New Container</b> again, existing database <code>billing</code>, container <code>clients</code>, partition key <code>/id</code>.</li>
+        <li><b>New Container</b> again, container <code>prices</code>, partition key <code>/id</code>.</li>
+      </ul>
+    </li>
+    <li>Copy the <b>URI</b> from <b>Overview</b> (for example <code>https://cosmos-ai-ledger-contoso.documents.azure.com:443/</code>). Step 6 needs it.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 5</span>Event Hubs</h3>
+  <ol>
+    <li>Search for <b>Event Hubs</b> → <b>Create</b>. Resource group, namespace name <code>evhns-ai-usage-contoso</code>, region, <b>Pricing tier: Standard</b>, <b>Throughput units: 1</b> → <b>Review + create</b>.</li>
+    <li>Open the namespace → <b>+ Event Hub</b>. Name <code>usage-events</code>, <b>Partition count: 4</b>, <b>Retention: 3 days</b> (Basic tier allows only 1 day) → <b>Review + create</b>. Create the hub before the APIM logger in step 11, which fails if the hub doesn't exist.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 6</span>Billing Function app</h3>
+  <ol>
+    <li>Search for <b>Function App</b> → <b>Create</b> → hosting option <b>Flex Consumption</b> → <b>Select</b>.</li>
+    <li><b>Basics</b>: resource group, name <code>func-ai-billing-contoso</code>, region, <b>Runtime stack: Python</b>, <b>Version: 3.11</b>, <b>Instance size: 2048 MB</b>.</li>
+    <li><b>Storage</b>: let it create a new storage account.</li>
+    <li><b>Monitoring</b>: Application Insights <b>Yes</b> → <code>appi-ai-gateway</code>.</li>
+    <li><b>Review + create</b> → <b>Create</b>.</li>
+    <li>When it's ready, open the Function app:
+      <ul>
+        <li><b>Settings → Identity → System assigned</b>: <b>On</b> → <b>Save</b>. Copy the <b>Object (principal) ID</b>; later steps call it <i>Function identity ID</i>.</li>
+        <li><b>Settings → Scale and concurrency</b>: <b>Always ready instances</b> → add <code>http</code> with <b>1</b> instance → <b>Save</b>.</li>
+        <li><b>Settings → Environment variables</b> → add <code>COSMOS_ENDPOINT</code> = the Cosmos URI from step 4, and <code>EventHub__fullyQualifiedNamespace</code> = <code>evhns-ai-usage-contoso.servicebus.windows.net</code> → <b>Apply</b>.</li>
+      </ul>
+    </li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 7</span>Role assignments</h3>
+  <p>Grant each one from the target resource's <b>Access control (IAM)</b> → <b>Add → Add role assignment</b> → pick the role → <b>Members</b>: <b>Assign access to: Managed identity</b> → <b>Select members</b> → pick the identity → <b>Review + assign</b>.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Open this resource</th><th>Role</th><th>Assign to</th></tr></thead>
+    <tbody>
+      <tr><td>Each team's Foundry resource</td><td>Cognitive Services OpenAI User</td><td>API Management → <code>apim-ai-gw-contoso</code></td></tr>
+      <tr><td>Event Hubs namespace</td><td>Azure Event Hubs Data Sender</td><td>API Management → <code>apim-ai-gw-contoso</code></td></tr>
+      <tr><td>Event Hubs namespace</td><td>Azure Event Hubs Data Receiver</td><td>Function App → <code>func-ai-billing-contoso</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Cosmos DB data access has no IAM screen in the portal. Run this in Cloud Shell. The second command turns off Cosmos account keys so only Entra identities can read or write the ledger.</p>
+  <div class="code" data-src="cs-cosmos" data-lang="cloud shell"></div></div>
+
+  <div class="step"><h3><span>Step 8</span>App registration for the billing service</h3>
+  <ol>
+    <li><b>Microsoft Entra ID → App registrations → New registration</b>. Name <code>ai-billing-api</code>, <b>Accounts in this organizational directory only</b> → <b>Register</b>.</li>
+    <li><b>Expose an API</b>: next to <b>Application ID URI</b> choose <b>Add</b> and set <code>api://ai-billing-api</code> → <b>Save</b>. Then <b>Add a scope</b>: name <code>user_impersonation</code>, who can consent <b>Admins only</b> → <b>Add scope</b>.</li>
+    <li>Still under <b>Expose an API</b>: <b>Add a client application</b> with client ID <code>04b07795-8ddb-461a-bbee-02f9e1bf7b46</code> (Azure CLI) and tick the scope. This lets admins call the top-up API from Cloud Shell.</li>
+    <li><b>App roles → Create app role</b>, twice:
+      <ul>
+        <li>Display name and value <code>Billing.Gateway</code>, allowed member types <b>Applications</b>.</li>
+        <li>Display name and value <code>Billing.Admin</code>, allowed member types <b>Both (Users/Groups + Applications)</b>.</li>
+      </ul>
+    </li>
+    <li><b>Microsoft Entra ID → Enterprise applications</b> → <code>ai-billing-api</code> → <b>Users and groups → Add user/group</b>: add the finance or platform admins with role <b>Billing.Admin</b>.</li>
+    <li>The portal can't give an app role to a managed identity. Give <code>Billing.Gateway</code> to APIM in Cloud Shell:</li>
+  </ol>
+  <div class="code" data-src="cs-approle" data-lang="cloud shell"></div></div>
+
+  <div class="step"><h3><span>Step 9</span>Turn on sign-in for the Function app</h3>
+  <ol>
+    <li>Function app → <b>Settings → Authentication → Add identity provider</b> → <b>Microsoft</b>.</li>
+    <li><b>App registration type</b>: <b>Pick an existing app registration in this directory</b> → <code>ai-billing-api</code>.</li>
+    <li><b>Client application requirement</b>: <b>Allow requests from any application</b>. Access is decided by the app role checks in the code.</li>
+    <li><b>Unauthenticated requests</b>: <b>HTTP 401</b>. Under allowed token audiences, include <code>api://ai-billing-api</code> → <b>Add</b>.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 10</span>Deploy the billing service code</h3>
+  <p>Flex Consumption apps can't be edited in the portal, so the code is deployed from a code editor or a pipeline.</p>
+  <ol>
+    <li>Put the code from <a href="#service">Billing service code</a> in a folder as <code>function_app.py</code>, with a <code>requirements.txt</code> listing <code>azure-functions</code>, <code>azure-cosmos</code> and <code>azure-identity</code>, and a standard <code>host.json</code>.</li>
+    <li>In VS Code with the <b>Azure Functions</b> extension, right-click the folder → <b>Deploy to Function App</b> → <code>func-ai-billing-contoso</code>. Without VS Code: zip the three files, upload the zip in Cloud Shell (<b>Manage files → Upload</b>) and run <code>az functionapp deployment source config-zip -g &lt;rg&gt; -n &lt;app&gt; --src ~/billing-func.zip --build-remote true</code>. A GitHub Actions pipeline from the Function app's <b>Deployment Center</b> works too.</li>
+    <li>Make sure the environment variables from step 6 are set before deploying. If <code>EventHub__fullyQualifiedNamespace</code> is missing, the deployment reports success but no functions load.</li>
+    <li>Check under the Function app's <b>Overview → Functions</b> that <code>account_for_client</code>, <code>charge_usage</code> and <code>top_up</code> are listed.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 11</span>Connect APIM to Event Hubs and add named values</h3>
+  <p>The APIM Event Hubs logger has no portal screen. Create it in Cloud Shell:</p>
+  <div class="code" data-src="cs-logger" data-lang="cloud shell"></div>
+  <p>Then in APIM → <b>APIs → Named values → + Add</b>, create three of type <b>Plain</b>:</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Name</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><code>tenant-id</code></td><td>Your Entra tenant ID (Entra ID → Overview)</td></tr>
+      <tr><td><code>billing-base-url</code></td><td><code>https://func-ai-billing-contoso.azurewebsites.net</code> (Function app → Overview → Default domain)</td></tr>
+      <tr><td><code>billing-app-id-uri</code></td><td><code>api://ai-billing-api</code></td></tr>
+    </tbody>
+  </table>
+  </div></div>
+
+  <div class="step"><h3><span>Step 12</span>Add one backend per team</h3>
+  <ol>
+    <li>APIM → <b>APIs → Backends → + Create new backend</b>.</li>
+    <li>Name <code>foundry-team-a</code>, type <b>Custom URL</b>, runtime URL <code>https://&lt;team-a-foundry&gt;.openai.azure.com</code>, with <b>no</b> <code>/openai</code> on the end, because the imported operations already start with <code>/openai</code>. Leave credentials empty; the policy adds the managed identity token → <b>Create</b>.</li>
+    <li>Repeat for every team. The backend name is what each account's <code>backendId</code> field points to.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 13</span>Import the inference API</h3>
+  <ol>
+    <li>APIM → <b>APIs → + Add API → Azure OpenAI Service</b> (shown as Microsoft Foundry in newer portals) and pick any one team's resource.</li>
+    <li>Display name <code>AI inference</code>, <b>Base path</b> <code>ai</code>, client compatibility <b>Azure OpenAI</b>. The operations include <code>/openai/...</code>, so the API answers at <code>https://&lt;apim&gt;.azure-api.net/ai/openai/deployments/{name}/...</code> and teams set their SDK endpoint to <code>https://&lt;apim&gt;.azure-api.net/ai</code>.</li>
+    <li>On the policy pages of the wizard, leave token limiting and token metrics off. Step 14 sets them per account.</li>
+    <li>After it's created, open the API → <b>Settings</b> → clear <b>Subscription required</b> → <b>Save</b>. Callers are identified by their Entra token instead.</li>
+    <li>On the same <b>Settings</b> page, under <b>Diagnostics Logs → Azure Monitor / Application Insights</b>, turn on logging to <code>appi-ai-gateway</code> and tick <b>Metrics</b> so the token metrics are recorded → <b>Save</b>.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 14</span>Apply the gateway policy</h3>
+  <ol>
+    <li>APIM → <b>APIs</b> → <code>AI inference</code> → <b>All operations</b> → in <b>Inbound processing</b>, select the <code>&lt;/&gt;</code> policy code editor.</li>
+    <li>Replace everything with the policy from <a href="#policy">Gateway policy</a> → <b>Save</b>. If the editor reports an error, it names the element and line.</li>
+  </ol></div>
+
+  <div class="step"><h3><span>Step 15</span>Load prices, accounts and app mappings</h3>
+  <ol>
+    <li>Cosmos DB → <b>Data Explorer</b> → <code>billing</code> → <code>prices</code> → <b>Items → New Item</b> → paste a price document → <b>Save</b>. One per model, using your contracted Azure rates.</li>
+    <li>In <code>ledger</code>, add one account document per team with <code>balanceMicroUsd</code> set to 0.</li>
+    <li>In <code>clients</code>, add one document per team application. The <code>id</code> is the app's <b>Application (client) ID</b> from its app registration or managed identity.</li>
+  </ol>
+  <div class="code" data-src="cs-seed" data-lang="json"></div>
+  <p>Fund each account through the top-up API rather than editing the balance by hand, so every change to a balance has a matching top-up record. From Cloud Shell, signed in as a Billing.Admin:</p>
+  <div class="code" data-src="cs-topup" data-lang="cloud shell"></div></div>
+
+  <div class="step"><h3><span>Step 16</span>Test end to end</h3>
+  <p>From Cloud Shell, signed in as a user who is mapped to an account in <code>clients</code> (or temporarily map your own user's app for the test):</p>
+  <div class="code" data-src="src-s13" data-lang="cloud shell"></div>
+  <p>Check that the call returns 200, a <code>charge</code> document appears in the <code>ledger</code> container, and the account balance drops. Then set a test account's <code>status</code> to <code>suspended</code> in Data Explorer, wait 30 seconds for the cache to expire, and confirm the next call returns 402.</p></div>
+
+  <div class="step"><h3><span>Step 17</span>Move teams over</h3>
+  <p>Each team changes one setting, the endpoint. Their token provider stays the same.</p>
+  <div class="code" data-src="src-s14" data-lang="python"></div></div>
+
+  <div class="step"><h3><span>Step 18</span>Remove direct access to Foundry</h3>
+  <p>Do this for each team once its traffic shows up in APIM. Until then, a team can call Foundry directly and never be charged.</p>
+  <ol>
+    <li>Team's Foundry resource → <b>Access control (IAM) → Role assignments</b> → remove the team's own <b>Cognitive Services OpenAI User</b> (or Contributor) assignments. Keep the one for <code>apim-ai-gw-contoso</code>.</li>
+    <li><b>Networking</b>: allow access from selected networks only, or add a private endpoint, so only APIM can reach it.</li>
+    <li>Turn off API keys on the resource. This has no portal switch; run in Cloud Shell:</li>
+  </ol>
+  <div class="code" data-src="cs-lockdown" data-lang="cloud shell"></div></div>
+</section>
+
+<section id="policy">
+  <h2>Gateway policy</h2>
+  <p>Applied at the API scope. Named values <code>{{tenant-id}}</code>, <code>{{billing-base-url}}</code> and <code>{{billing-app-id-uri}}</code> come from step 8.</p>
+  <div class="code" data-src="src-policy" data-lang="xml"></div>
+  <p>Streaming responses can't be parsed without buffering them, which would delay the first token. For streams, the policy charges the total token count at the output rate, which slightly overcharges, and marks the charge <code>estimated</code>. A nightly job corrects estimated charges from the APIM LLM logs.</p>
+</section>
+
+<section id="service">
+  <h2>Billing service code</h2>
+  <p>Python v2 programming model: one Function app with three functions — account lookup for the gateway, the usage-event charger, and the admin top-up.</p>
+  <div class="note"><p>This is the production version, secured by Entra app roles. The PoC runs a function-key variant instead: <code>AuthLevel.FUNCTION</code>, no role checks, a <code>by</code> field on top-ups, Cosmos DB connected on first use, and <code>balanceUsd</code>, <code>costUsd</code> and <code>amountUsd</code> display fields. In its APIM policy, the billing call sends <code>x-functions-key: {{billing-func-key}}</code> instead of a managed identity token.</p></div>
+  <div class="code" data-src="src-func" data-lang="python"></div>
+  <p>App settings: <code>COSMOS_ENDPOINT</code>, and <code>EventHub__fullyQualifiedNamespace</code> set to <code>&lt;namespace&gt;.servicebus.windows.net</code> so the trigger connects with the managed identity. <code>requirements.txt</code>: <code>azure-functions</code>, <code>azure-cosmos</code>, <code>azure-identity</code>.</p>
+</section>
+
+<section id="reporting">
+  <h2>Reporting</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Report</th><th>Source</th><th>Tool</th></tr></thead>
+    <tbody>
+      <tr><td>Team statement: top-ups, spend by model and day, balance</td><td>Cosmos ledger</td><td>Power BI through Fabric mirroring of Cosmos DB, or a monthly export Function</td></tr>
+      <tr><td>Live usage and throttling by team</td><td>App Insights token metrics</td><td>Azure Workbook or dashboard</td></tr>
+      <tr><td>Per-request audit and streaming true-up</td><td>APIM LLM logs in Log Analytics</td><td>KQL</td></tr>
+      <tr><td>Margin check: ledger total vs Azure invoice</td><td>Ledger + Cost Management export</td><td>Power BI</td></tr>
+      <tr><td>Low-balance alerts at 20% and 5%</td><td>Billing service after each charge</td><td>Email or Teams via Logic Apps</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="code" data-src="src-kql" data-lang="kql"></div>
+  <div class="code" data-src="src-sql" data-lang="cosmos sql"></div>
+</section>
+
+<section id="risks">
+  <h2>Risks and open items</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Item</th><th>Impact</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td>Overspend window</td><td>Charges land a few seconds after the response and balances are cached for 30 s, so a busy team can go slightly negative.</td><td>Accept a small overdraft, which is recovered from the next top-up. If that is not acceptable, add strict reserve-and-settle for accounts below a threshold.</td></tr>
+      <tr><td>Streaming accuracy</td><td>Streamed calls are charged at an estimated rate.</td><td>Nightly true-up from LLM logs. Confirm in the pilot that <code>tokensConsumed</code> is populated for streamed responses.</td></tr>
+      <tr><td>Policy and code not yet run</td><td>Both follow documented APIM and SDK syntax but have not been executed.</td><td>Run them in the dev instance with the APIM trace tool and unit tests before the pilot.</td></tr>
+      <tr><td>Price drift</td><td>Ledger prices fall out of step with Azure prices.</td><td>Keep the price table in one place and reconcile monthly against Cost Management.</td></tr>
+      <tr><td>Hot partition</td><td>One very busy team writes to a single logical partition.</td><td>Serverless handles bursts up to the partition limit. If a team exceeds it, move that team's charge records to a separate container.</td></tr>
+      <tr><td>Partition size</td><td>A logical partition holds up to 20 GB.</td><td>Set a TTL on charge documents (for example 400 days) once they are mirrored to reporting.</td></tr>
+      <tr><td>Single gateway</td><td>An APIM outage stops every team.</td><td>Standard v2 has an SLA. Premium v2 adds zones and multi-region when the risk justifies the cost.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="plan">
+  <h2>Delivery plan</h2>
+  <div class="phase">
+    <div><b>Week 1</b><span>Resources, identities, and APIM pass-through for one pilot team with metrics only.</span></div>
+    <div><b>Week 2</b><span>Billing service, ledger and full policy. Tests in dev, including 402 and duplicate events.</span></div>
+    <div><b>Week 3</b><span>Pilot team on production APIM with a real balance. Reporting workbook and first statement.</span></div>
+    <div><b>Week 4+</b><span>Move the remaining teams one at a time, then remove direct Foundry access for each.</span></div>
+  </div>
+  <h3>Sources for prices</h3>
+  <ul class="sources">
+    <li><a href="https://apimanagementcost.com/vendors/azure-api-management">APIM pricing: Basic v2, Standard v2, Premium v2 (apimanagementcost.com)</a></li>
+    <li><a href="https://www.digitalapi.ai/blogs/azure-api-management-pricing">Azure API Management pricing 2026 (digitalapi.ai)</a></li>
+    <li><a href="https://azure.microsoft.com/en-us/pricing/details/cosmos-db/serverless/">Cosmos DB serverless pricing (Microsoft)</a></li>
+    <li><a href="https://learn.microsoft.com/en-us/azure/azure-functions/functions-consumption-costs">Azure Functions consumption costs (Microsoft Learn)</a></li>
+    <li><a href="https://dev.to/martin_oehlert/production-realities-when-azure-functions-stops-being-serverless-p2g">Flex Consumption always-ready estimate (DEV Community)</a></li>
+    <li><a href="https://cloudpricecheck-com.pages.dev/azure/event-hubs-pricing">Event Hubs pricing 2026 (cloudpricecheck)</a></li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<script type="text/plain" id="src-docs">// ledger: account (one per team)
+{ "id": "team-a", "accountId": "team-a", "type": "account",
+  "name": "Team A", "backendId": "foundry-team-a",
+  "balanceMicroUsd": 500000000, "status": "active" }
+
+// ledger: charge (id = APIM request ID, so a replayed event cannot charge twice)
+{ "id": "7f9c...-request-id", "accountId": "team-a", "type": "charge",
+  "clientId": "<entra-app-id>", "model": "gpt-4o-2024-08-06",
+  "promptTokens": 1200, "cachedTokens": 0, "completionTokens": 350,
+  "costMicroUsd": 6500, "estimated": false, "ts": "2026-10-29T14:03:11Z" }
+
+// ledger: top-up (id = finance reference, so a retried top-up cannot apply twice)
+{ "id": "topup-INV-2026-0142", "accountId": "team-a", "type": "topup",
+  "amountMicroUsd": 300000000, "by": "finance.admin@contoso.com", "ts": "2026-10-29T09:00:00Z" }
+
+// clients
+{ "id": "<entra-app-id>", "accountId": "team-a", "displayName": "team-a-chatbot" }
+
+// prices (USD per 1M tokens; example figures, use your contracted rates)
+{ "id": "gpt-4o", "inputPerM": 2.50, "cachedInputPerM": 1.25, "outputPerM": 10.00 }</script>
+
+<script type="text/plain" id="src-s13">GW=https://apim-ai-gw-contoso.azure-api.net
+TOKEN=$(az account get-access-token --resource https://cognitiveservices.azure.com --query accessToken -o tsv)
+
+curl -s "$GW/ai/openai/deployments/gpt-4o/chat/completions?api-version=2024-10-21" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Say hello"}],"max_tokens":20}'</script>
+
+<script type="text/plain" id="src-s14">from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from openai import AzureOpenAI
+
+token_provider = get_bearer_token_provider(
+    DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+)
+
+client = AzureOpenAI(
+    azure_endpoint="https://apim-ai-gw-contoso.azure-api.net/ai",  # was https://<foundry>.openai.azure.com
+    azure_ad_token_provider=token_provider,                     # unchanged
+    api_version="2024-10-21",
+)</script>
+
+<script type="text/plain" id="cs-cosmos">RG=rg-ai-gateway
+COSMOS=cosmos-ai-ledger-contoso
+FUNC_MI=<Function identity ID from step 6>
+
+# Billing service gets read/write on the ledger (built-in Data Contributor)
+az cosmosdb sql role assignment create -a $COSMOS -g $RG \
+  --role-definition-id 00000000-0000-0000-0000-000000000002 \
+  --principal-id $FUNC_MI --scope "/"
+
+# Entra-only access: turn off Cosmos account keys
+az resource update -g $RG -n $COSMOS \
+  --resource-type Microsoft.DocumentDB/databaseAccounts \
+  --set properties.disableLocalAuth=true</script>
+
+<script type="text/plain" id="cs-approle">APIM_MI=<APIM identity ID from step 3>
+API_SP=$(az ad sp list --display-name ai-billing-api --query "[0].id" -o tsv)
+ROLE_ID=$(az ad sp show --id $API_SP --query "appRoles[?value=='Billing.Gateway'].id | [0]" -o tsv)
+
+az rest --method post \
+  --url "https://graph.microsoft.com/v1.0/servicePrincipals/$APIM_MI/appRoleAssignments" \
+  --body "{\"principalId\":\"$APIM_MI\",\"resourceId\":\"$API_SP\",\"appRoleId\":\"$ROLE_ID\"}"</script>
+
+<script type="text/plain" id="cs-logger">RG=rg-ai-gateway
+APIM=apim-ai-gw-contoso
+EHNS=evhns-ai-usage-contoso
+APIM_ID=$(az apim show -n $APIM -g $RG --query id -o tsv)
+
+# Event Hubs logger that signs in with the APIM managed identity
+az rest --method put \
+  --url "https://management.azure.com$APIM_ID/loggers/billing-logger?api-version=2024-05-01" \
+  --body "{\"properties\":{\"loggerType\":\"azureEventHub\",\"description\":\"Usage events for billing\",
+    \"credentials\":{\"endpointAddress\":\"$EHNS.servicebus.windows.net\",
+    \"identityClientId\":\"SystemAssigned\",\"name\":\"usage-events\"}}}"</script>
+
+<script type="text/plain" id="cs-seed">// prices container: one per model (USD per 1M tokens; example rates, use your contracted ones)
+{ "id": "gpt-4o", "inputPerM": 2.50, "cachedInputPerM": 1.25, "outputPerM": 10.00 }
+
+// ledger container: one account per team, starting at zero
+{ "id": "team-a", "accountId": "team-a", "type": "account", "name": "Team A",
+  "backendId": "foundry-team-a", "balanceMicroUsd": 0, "status": "active" }
+
+// clients container: one per team application (id = Application (client) ID)
+{ "id": "00000000-0000-0000-0000-000000000000", "accountId": "team-a", "displayName": "team-a-chatbot" }</script>
+
+<script type="text/plain" id="cs-topup">FUNC=func-ai-billing-contoso
+TOKEN=$(az account get-access-token --resource api://ai-billing-api --query accessToken -o tsv)
+
+# $500 for team-a; the reference makes a retried top-up apply only once
+curl -X POST "https://$FUNC.azurewebsites.net/api/accounts/team-a/topups" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"amountUsd": 500, "reference": "INV-2026-0142"}'</script>
+
+<script type="text/plain" id="cs-lockdown">FOUNDRY_ID=$(az cognitiveservices account show -n <team-a-foundry> -g <team-a-rg> --query id -o tsv)
+az resource update --ids $FOUNDRY_ID --set properties.disableLocalAuth=true</script>
+
+<script type="text/plain" id="src-policy"><policies>
+  <inbound>
+    <base />
+    <!-- 1. Authenticate the caller with Entra ID -->
+    <validate-azure-ad-token tenant-id="{{tenant-id}}" output-token-variable-name="jwt">
+      <audiences>
+        <audience>https://cognitiveservices.azure.com</audience>
+      </audiences>
+    </validate-azure-ad-token>
+    <set-variable name="clientId" value="@{
+      var jwt = (Jwt)context.Variables["jwt"];
+      return jwt.Claims.GetValueOrDefault("appid", jwt.Claims.GetValueOrDefault("azp", ""));
+    }" />
+
+    <!-- 2. Resolve account, backend and balance (cached 30 s) -->
+    <cache-lookup-value key="@("acct-" + (string)context.Variables["clientId"])" variable-name="acct" />
+    <choose>
+      <when condition="@(!context.Variables.ContainsKey("acct"))">
+        <send-request mode="new" response-variable-name="acctResp" timeout="5" ignore-error="false">
+          <set-url>@("{{billing-base-url}}/api/accounts/by-client/" + (string)context.Variables["clientId"])</set-url>
+          <set-method>GET</set-method>
+          <authentication-managed-identity resource="{{billing-app-id-uri}}" />
+        </send-request>
+        <choose>
+          <when condition="@(((IResponse)context.Variables["acctResp"]).StatusCode == 404)">
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":{"code":"NotOnboarded","message":"This application is not registered with the AI gateway. Contact the AI platform team."}}</set-body>
+            </return-response>
+          </when>
+          <when condition="@(((IResponse)context.Variables["acctResp"]).StatusCode != 200)">
+            <return-response>
+              <set-status code="503" reason="Service Unavailable" />
+              <set-header name="Retry-After" exists-action="override"><value>5</value></set-header>
+              <set-body>{"error":{"code":"BillingUnavailable","message":"The balance check failed. Retry in a few seconds."}}</set-body>
+            </return-response>
+          </when>
+        </choose>
+        <set-variable name="acct" value="@(((IResponse)context.Variables["acctResp"]).Body.As<string>())" />
+        <cache-store-value key="@("acct-" + (string)context.Variables["clientId"])" value="@((string)context.Variables["acct"])" duration="30" />
+      </when>
+    </choose>
+    <set-variable name="accountId" value="@((string)JObject.Parse((string)context.Variables["acct"])["accountId"])" />
+    <set-variable name="backendId" value="@((string)JObject.Parse((string)context.Variables["acct"])["backendId"])" />
+    <set-variable name="balance" value="@((long)JObject.Parse((string)context.Variables["acct"])["balanceMicroUsd"])" />
+
+    <!-- 3. Stop when the prepaid balance is used up -->
+    <choose>
+      <when condition="@((long)context.Variables["balance"] <= 0)">
+        <return-response>
+          <set-status code="402" reason="Payment Required" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":{"code":"PrepaidBalanceExhausted","message":"Your team's prepaid AI balance is used up. Ask your admin to top up."}}</set-body>
+        </return-response>
+      </when>
+    </choose>
+
+    <!-- 4. Throughput cap per account, and token metrics -->
+    <llm-token-limit counter-key="@((string)context.Variables["accountId"])"
+                     tokens-per-minute="200000"
+                     estimate-prompt-tokens="false"
+                     tokens-consumed-variable-name="tokensConsumed"
+                     remaining-tokens-header-name="x-ratelimit-remaining-tokens" />
+    <llm-emit-token-metric namespace="ai-gateway">
+      <dimension name="Account" value="@((string)context.Variables["accountId"])" />
+      <dimension name="Client ID" value="@((string)context.Variables["clientId"])" />
+      <dimension name="API ID" />
+    </llm-emit-token-metric>
+
+    <!-- 5. Route to the team's Foundry resource as the gateway identity -->
+    <set-backend-service backend-id="@((string)context.Variables["backendId"])" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+  </inbound>
+
+  <backend>
+    <base />
+  </backend>
+
+  <outbound>
+    <base />
+    <!-- 6. Usage event for billing (async, the client does not wait) -->
+    <choose>
+      <when condition="@(context.Response.StatusCode == 200 && !context.Response.Headers.GetValueOrDefault("Content-Type", "").Contains("text/event-stream"))">
+        <log-to-eventhub logger-id="billing-logger">@{
+          var body = context.Response.Body.As<JObject>(preserveContent: true);
+          var usage = body["usage"];
+          return new JObject(
+            new JProperty("chargeId", context.RequestId.ToString()),
+            new JProperty("accountId", (string)context.Variables["accountId"]),
+            new JProperty("clientId", (string)context.Variables["clientId"]),
+            new JProperty("model", (string)body["model"]),
+            new JProperty("promptTokens", usage?["prompt_tokens"]?.Value<int>() ?? 0),
+            new JProperty("cachedTokens", usage?["prompt_tokens_details"]?["cached_tokens"]?.Value<int>() ?? 0),
+            new JProperty("completionTokens", usage?["completion_tokens"]?.Value<int>() ?? 0),
+            new JProperty("estimated", false),
+            new JProperty("ts", DateTime.UtcNow.ToString("o"))
+          ).ToString();
+        }</log-to-eventhub>
+      </when>
+      <when condition="@(context.Response.StatusCode == 200)">
+        <!-- streamed: total tokens only, charged at the output rate and trued up nightly -->
+        <log-to-eventhub logger-id="billing-logger">@{
+          return new JObject(
+            new JProperty("chargeId", context.RequestId.ToString()),
+            new JProperty("accountId", (string)context.Variables["accountId"]),
+            new JProperty("clientId", (string)context.Variables["clientId"]),
+            new JProperty("model", context.Request.MatchedParameters.GetValueOrDefault("deployment-id", "unknown")),
+            new JProperty("promptTokens", 0),
+            new JProperty("cachedTokens", 0),
+            new JProperty("completionTokens", context.Variables.GetValueOrDefault<int>("tokensConsumed", 0)),
+            new JProperty("estimated", true),
+            new JProperty("ts", DateTime.UtcNow.ToString("o"))
+          ).ToString();
+        }</log-to-eventhub>
+      </when>
+    </choose>
+  </outbound>
+
+  <on-error>
+    <base />
+  </on-error>
+</policies></script>
+
+<script type="text/plain" id="src-func">import base64
+import json
+import logging
+import os
+import time
+from datetime import datetime, timezone
+from decimal import ROUND_CEILING, Decimal
+
+import azure.functions as func
+from azure.cosmos import CosmosClient, exceptions
+from azure.identity import DefaultAzureCredential
+
+# Entra ID authentication is enforced by App Service Authentication in front of these functions.
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
+MICRO = Decimal(1_000_000)
+PRICE_TTL_SECONDS = 300
+
+_db = CosmosClient(os.environ["COSMOS_ENDPOINT"], credential=DefaultAzureCredential()).get_database_client("billing")
+ledger = _db.get_container_client("ledger")
+clients = _db.get_container_client("clients")
+prices = _db.get_container_client("prices")
+
+_price_cache = {"loaded_at": 0.0, "rows": {}}
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _json(body: dict, status: int = 200) -> func.HttpResponse:
+    return func.HttpResponse(json.dumps(body), status_code=status, mimetype="application/json")
+
+
+def _principal(req: func.HttpRequest) -> dict:
+    header = req.headers.get("x-ms-client-principal")
+    return json.loads(base64.b64decode(header)) if header else {}
+
+
+def _has_role(req: func.HttpRequest, role: str) -> bool:
+    return any(c.get("typ") == "roles" and c.get("val") == role for c in _principal(req).get("claims", []))
+
+
+def _price_for(model: str) -> dict:
+    if time.time() - _price_cache["loaded_at"] > PRICE_TTL_SECONDS:
+        _price_cache["rows"] = {p["id"]: p for p in prices.read_all_items()}
+        _price_cache["loaded_at"] = time.time()
+    rows = _price_cache["rows"]
+    if model in rows:
+        return rows[model]
+    # "gpt-4o-2024-08-06" falls back to the "gpt-4o" entry
+    match = max((k for k in rows if model.startswith(k)), key=len, default=None)
+    if match is None:
+        raise KeyError(f"No price configured for model '{model}'")
+    return rows[match]
+
+
+def _cost_micro_usd(price: dict, prompt: int, cached: int, completion: int) -> int:
+    input_rate = Decimal(str(price["inputPerM"]))
+    cached_rate = Decimal(str(price.get("cachedInputPerM", price["inputPerM"])))
+    output_rate = Decimal(str(price["outputPerM"]))
+    usd = (Decimal(prompt - cached) * input_rate
+           + Decimal(cached) * cached_rate
+           + Decimal(completion) * output_rate) / Decimal(1_000_000)
+    return int((usd * MICRO).to_integral_value(rounding=ROUND_CEILING))
+
+
+def _apply(account_id: str, entry: dict, delta_micro_usd: int) -> bool:
+    """Write the entry and move the balance in one transaction. False if the entry already exists."""
+    try:
+        ledger.execute_item_batch(
+            batch_operations=[
+                ("create", (entry,)),
+                ("patch", (account_id, [{"op": "incr", "path": "/balanceMicroUsd", "value": delta_micro_usd}])),
+            ],
+            partition_key=account_id,
+        )
+        return True
+    except exceptions.CosmosBatchOperationError as err:
+        if err.error_index == 0 and err.operation_responses[0].get("statusCode") == 409:
+            return False
+        raise
+
+
+@app.route(route="accounts/by-client/{clientId}", methods=["GET"])
+def account_for_client(req: func.HttpRequest) -> func.HttpResponse:
+    if not _has_role(req, "Billing.Gateway"):
+        return _json({"error": "Missing Billing.Gateway role"}, 403)
+    client_id = req.route_params["clientId"]
+    try:
+        link = clients.read_item(client_id, partition_key=client_id)
+        account = ledger.read_item(link["accountId"], partition_key=link["accountId"])
+    except exceptions.CosmosResourceNotFoundError:
+        return _json({"error": "Unknown client"}, 404)
+    balance = account["balanceMicroUsd"] if account.get("status") == "active" else 0
+    return _json({
+        "accountId": account["accountId"],
+        "backendId": account["backendId"],
+        "balanceMicroUsd": balance,
+    })
+
+
+@app.event_hub_message_trigger(arg_name="events", event_hub_name="usage-events",
+                               connection="EventHub", cardinality=func.Cardinality.MANY)
+def charge_usage(events: list[func.EventHubEvent]) -> None:
+    for event in events:
+        usage = json.loads(event.get_body())
+        account_id = usage["accountId"]
+        cost = _cost_micro_usd(_price_for(usage["model"]), usage["promptTokens"],
+                               usage.get("cachedTokens", 0), usage["completionTokens"])
+        entry = {
+            "id": usage["chargeId"],
+            "accountId": account_id,
+            "type": "charge",
+            "clientId": usage["clientId"],
+            "model": usage["model"],
+            "promptTokens": usage["promptTokens"],
+            "cachedTokens": usage.get("cachedTokens", 0),
+            "completionTokens": usage["completionTokens"],
+            "costMicroUsd": cost,
+            "estimated": usage.get("estimated", False),
+            "ts": usage["ts"],
+        }
+        if not _apply(account_id, entry, -cost):
+            logging.info("Charge %s already recorded, skipped", usage["chargeId"])
+
+
+@app.route(route="accounts/{accountId}/topups", methods=["POST"])
+def top_up(req: func.HttpRequest) -> func.HttpResponse:
+    if not _has_role(req, "Billing.Admin"):
+        return _json({"error": "Missing Billing.Admin role"}, 403)
+    account_id = req.route_params["accountId"]
+    body = req.get_json()
+    amount = int(Decimal(str(body["amountUsd"])) * MICRO)
+    if amount <= 0 or not body.get("reference"):
+        return _json({"error": "amountUsd must be positive and reference is required"}, 400)
+    entry = {
+        "id": f"topup-{body['reference']}",
+        "accountId": account_id,
+        "type": "topup",
+        "amountMicroUsd": amount,
+        "by": _principal(req).get("userDetails", "unknown"),
+        "ts": _now(),
+    }
+    try:
+        applied = _apply(account_id, entry, amount)
+    except exceptions.CosmosResourceNotFoundError:
+        return _json({"error": f"Account '{account_id}' does not exist"}, 404)
+    account = ledger.read_item(account_id, partition_key=account_id)
+    return _json({"applied": applied, "balanceUsd": account["balanceMicroUsd"] / 1_000_000}, 201 if applied else 200)</script>
+
+<script type="text/plain" id="src-kql">// Daily tokens by account (Application Insights)
+customMetrics
+| where name in ("Prompt Tokens", "Completion Tokens")
+| extend account = tostring(customDimensions["Account"])
+| summarize tokens = sum(valueSum) by bin(timestamp, 1d), account, name
+| order by timestamp desc</script>
+
+<script type="text/plain" id="src-sql">-- Spend by model this month for one team (Cosmos DB, ledger container)
+SELECT c.model, SUM(c.costMicroUsd) / 1000000 AS costUsd,
+       SUM(c.promptTokens) AS promptTokens, SUM(c.completionTokens) AS completionTokens
+FROM c
+WHERE c.accountId = "team-a" AND c.type = "charge" AND c.ts >= "2026-10-01"
+GROUP BY c.model</script>
+
+<script>
+document.querySelectorAll('.code[data-src]').forEach(function (box) {
+  var src = document.getElementById(box.dataset.src);
+  if (!src) return;
+  var pre = document.createElement('pre');
+  var code = document.createElement('code');
+  code.textContent = src.textContent.replace(/^\n/, '');
+  pre.appendChild(code);
+  var lang = document.createElement('span');
+  lang.className = 'lang';
+  lang.textContent = box.dataset.lang || '';
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Copy';
+  btn.setAttribute('aria-label', 'Copy ' + (box.dataset.lang || 'code'));
+  btn.addEventListener('click', function () {
+    var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
+    try {
+      navigator.clipboard.writeText(code.textContent).then(done, function () { selectCode(code); });
+    } catch (e) { selectCode(code); }
+  });
+  box.appendChild(lang);
+  box.appendChild(btn);
+  box.appendChild(pre);
+});
+function selectCode(el) {
+  var r = document.createRange(); r.selectNodeContents(el);
+  var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+</script>
